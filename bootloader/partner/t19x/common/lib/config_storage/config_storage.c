@@ -117,7 +117,7 @@ static const struct tegrabl_device_info dev_cfg_info[] = {
 
 /* Correct device_type/instance on XNX using board ID SKU */
 static tegrabl_storage_type_t correct_device_and_instance(tegrabl_storage_type_t device_type,
-							  uint8_t *instance)
+							  uint32_t *instance)
 {
 	TEGRABL_UNUSED(instance);
 #if defined(CONFIG_OS_IS_L4T)
@@ -165,11 +165,11 @@ static tegrabl_storage_type_t correct_device_and_instance(tegrabl_storage_type_t
 		pr_debug("SKU %d: image device_type = %d, SKU device_type = %d!\n",
 			 sku_num, device_type, dev_cfg_info[sku_num].device_type);
 		device_type = dev_cfg_info[sku_num].device_type;
-		*instance = dev_cfg_info[sku_num].instance;
+		*instance = (uint32_t)dev_cfg_info[sku_num].instance;
 	}
 done:
 	pr_debug("%s: final DEVICE_TYPE = %d, INSTANCE = %d\n", __func__,
-		 device_type, (uint8_t)*instance);
+		 device_type, (uint32_t)*instance);
 #endif	/* CONFIG_OS_IS_L4T */
 
 	return device_type;
@@ -177,7 +177,7 @@ done:
 
 tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_config,
 							tegrabl_storage_type_t device_type,
-							uint8_t instance)
+							uint32_t *instance)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	const char *device = "";
@@ -225,9 +225,9 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 			sdmmc_params.is_skip_init = true;
 			source = "boot args";
 		}
-		err = sdmmc_bdev_open(instance, &sdmmc_params);
+		err = sdmmc_bdev_open(*instance, &sdmmc_params);
 		if (err != TEGRABL_NO_ERROR) {
-			pr_error("Failed to open sdmmc-%d, err = %x\n", instance, err);
+			pr_error("Failed to open sdmmc-%d, err = %x\n", *instance, err);
 			goto fail;
 		}
 		break;
@@ -258,9 +258,9 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 			qflash_params.trimmer2_val = device_config->qspi_flash.trimmer2_val;
 			source = "boot args";
 		}
-		err = tegrabl_qspi_flash_open(instance, &qflash_params);
+		err = tegrabl_qspi_flash_open(*instance, &qflash_params);
 		if (err != TEGRABL_NO_ERROR) {
-			pr_error("Failed to open QSPI flash=%d, err = %x\n", instance, err);
+			pr_error("Failed to open QSPI flash=%d, err = %x\n", *instance, err);
 			goto fail;
 		}
 		break;
@@ -287,7 +287,7 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 		}
 		err = tegrabl_ufs_bdev_open(true, &ufs_params);
 		if (err != TEGRABL_NO_ERROR) {
-			pr_error("Failed to open UFS-%d, err=%x\n", instance, err);
+			pr_error("Failed to open UFS-%d, err=%x\n", *instance, err);
 			goto fail;
 		}
 		break;
@@ -302,9 +302,9 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 			sata_params.transfer_speed = device_config->sata.transfer_speed;
 			source = "boot args";
 		}
-		err = tegrabl_sata_bdev_open(instance, NULL, &sata_params);
+		err = tegrabl_sata_bdev_open(*instance, NULL, &sata_params);
 		if (err != TEGRABL_NO_ERROR) {
-			pr_error("Failed to open SATA-%d, err = %x\n", instance, err);
+			pr_error("Failed to open SATA-%d, err = %x\n", *instance, err);
 			goto fail;
 		}
 		break;
@@ -312,10 +312,12 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 
 #if defined(CONFIG_ENABLE_SDCARD)
 	case TEGRABL_STORAGE_SDCARD:
+		device = "sdcard";
 		err = tegrabl_sd_get_platform_params(&sd_instance, &sd_params);
 		if (err != TEGRABL_NO_ERROR) {
 			pr_warn("Error: failed to get sd-card params\n");
 		} else {
+			*instance = sd_instance;
 			err = sd_bdev_is_card_present(&sd_params.cd_gpio, &is_present);
 			if (err != TEGRABL_NO_ERROR) {
 				pr_warn("No SD-card present !!\n");
@@ -332,6 +334,7 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 #endif
 #if defined(CONFIG_ENABLE_USB_MS)
 	case TEGRABL_STORAGE_USB_MS:
+		device = "usb ms";
 		pr_debug("Calling tegrabl_usbh_init ..\n");
 		err = tegrabl_usbh_init();
 		if (err != TEGRABL_NO_ERROR) {
@@ -340,9 +343,9 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 		}
 
 		pr_debug("Calling tegrabl_usbmsd_bdev_open ..\n");
-		err = tegrabl_usbmsd_bdev_open(instance);
+		err = tegrabl_usbmsd_bdev_open(*instance);
 		if (err != TEGRABL_NO_ERROR) {
-			pr_error("Error opening USBMSD driver %d, err: %X\n", instance, err);
+			pr_error("Error opening USBMSD driver %d, err: %X\n", *instance, err);
 			goto fail;
 		}
 		break;
@@ -356,7 +359,7 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 		goto fail;
 	}
 
-	pr_info("%s-%d params source = %s\n", device, instance, source);
+	pr_info("%s-%d params source = %s\n", device, *instance, source);
 
 fail:
 	return err;
@@ -389,7 +392,7 @@ tegrabl_error_t config_storage(struct tegrabl_device_config_params *device_confi
 		[TEGRABL_BOOT_DEV_UFS_USER] = TEGRABL_STORAGE_UFS_USER,
 		[TEGRABL_BOOT_DEV_SDCARD] = TEGRABL_STORAGE_SDCARD,
 	};
-	uint8_t instance;
+	uint32_t instance;
 
 	TEGRABL_UNUSED(device_config);
 
@@ -408,7 +411,7 @@ tegrabl_error_t config_storage(struct tegrabl_device_config_params *device_confi
 
 	pr_info("Boot_device: %s instance: %u\n", tegrabl_blockdev_get_name(boot_device), boot_dev_instance);
 
-	err = init_storage_device(device_config, boot_device, (uint8_t)boot_dev_instance);
+	err = init_storage_device(device_config, boot_device, &boot_dev_instance);
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("Failed to initialize boot device\n");
 		goto fail;
@@ -431,10 +434,10 @@ tegrabl_error_t config_storage(struct tegrabl_device_config_params *device_confi
 		}
 
 		/* Correct device_type/instance  on XNX using board ID SKU */
-		instance = devices[i].instance;
+		instance = (uint32_t)devices[i].instance;
 		device = correct_device_and_instance(device, &instance);
 
-		err = init_storage_device(device_config, device, instance);
+		err = init_storage_device(device_config, device, &instance);
 		if (err != TEGRABL_NO_ERROR) {
 			pr_error("Failed to initialize device %d-%d\n", device, instance);
 			goto fail;
