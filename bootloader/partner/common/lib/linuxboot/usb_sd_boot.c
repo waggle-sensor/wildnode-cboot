@@ -122,6 +122,8 @@ tegrabl_error_t usb_sd_boot_load_kernel_and_dtb(uint8_t boot_type,
 	}
 
 	/* Publish partitions of storage device*/
+	device_instance = 2;
+	pr_debug("JOE hard-code into instance 2 for SD card\n");
 	bdev = tegrabl_blockdev_open(device_type, device_instance);
 	if (bdev == NULL) {
 		err = TEGRABL_ERROR(TEGRABL_ERR_OPEN_FAILED, 0);

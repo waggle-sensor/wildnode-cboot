@@ -43,11 +43,13 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 	}
 
 	err = TEGRABL_ERROR(TEGRABL_ERR_NOT_FOUND, 0);
-	for (i = 0; i < ARRAY_SIZE(sdmmc_nodes); i++) {
+	for (i = 1; i < ARRAY_SIZE(sdmmc_nodes); i++) {
+		pr_debug("Trying sdmmc interface: %s\n", sdmmc_nodes[i]);
 		name = fdt_get_alias(fdt, sdmmc_nodes[i]);
 		if (name == NULL) {
 			continue;
 		}
+		pr_debug("Alias name: %s\n", name);
 		offset = fdt_path_offset(fdt, name);
 		if (offset < 0) {
 			err = TEGRABL_ERROR(TEGRABL_ERR_NOT_FOUND, 1);
@@ -58,7 +60,7 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 		/* if node does not have status=ok, skip then try next node */
 		temp = fdt_getprop(fdt, offset, "status", NULL);
 		if (temp != NULL) {
-			pr_trace("sdmmc node status = %s\n", temp);
+			pr_debug("sdmmc node status = %s\n", temp);
 			if (strcmp(temp, "okay")) {
 				pr_debug("sdmmc node status is disabled\n");
 				continue;
@@ -73,7 +75,7 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 		}
 
 		*instance = i;
-		pr_trace("sdcard instance = %d\n", i);
+		pr_debug("sdcard instance = %d\n", i);
 
 		data = fdt_getprop(fdt, offset, "cd-gpios", &len);
 		if ((data == NULL) || (len < 0))
@@ -92,7 +94,7 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 		data = fdt_getprop(fdt, offset, "vmmc-supply", NULL);
 		if (data != NULL) {
 			params->vmmc_supply = fdt32_to_cpu(*data);
-			pr_trace("vmmc-supply 0x%x\n", params->vmmc_supply);
+			pr_debug("vmmc-supply 0x%x\n", params->vmmc_supply);
 		} else {
 			params->vmmc_supply = 0;
 			pr_error("no regulator info present for vmmc-supply\n");
@@ -105,4 +107,3 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 fail:
 	return err;
 }
-

@@ -1522,7 +1522,7 @@ tegrabl_error_t sdmmc_init(uint32_t instance, struct tegrabl_sdmmc *hsdmmc, uint
 	}
 
 	/* Store the default init parameters. */
-	pr_trace("Set default hsdmmc\n");
+	pr_debug("Set default hsdmmc\n");
 	sdmmc_set_default_hsdmmc(hsdmmc, instance);
 
 	/* TODO: Handle the case if sdmmc is initialized with different
@@ -1538,20 +1538,20 @@ tegrabl_error_t sdmmc_init(uint32_t instance, struct tegrabl_sdmmc *hsdmmc, uint
 			goto fail;
 		}
 #endif
-		pr_trace("ext CSD register read\n");
+		pr_debug("ext CSD register read\n");
 		error = sdmmc_get_ext_csd(hsdmmc);
 		if (error != TEGRABL_NO_ERROR) {
 			goto fail;
 		}
 		if (flag == SKIP_INIT_UPDATE_CONFIG) {
 			/* Setup card for data transfer. */
-			pr_trace("Set card for data transfer\n");
+			pr_debug("Set card for data transfer\n");
 			error = sdmmc_select_mode_transfer(hsdmmc);
 			if (error != TEGRABL_NO_ERROR) {
 				goto fail;
 			}
 			/* Setup the default region of operation as user partition. */
-			pr_trace("Set default region as user partition\n");
+			pr_debug("Set default region as user partition\n");
 			if (hsdmmc->device_type != DEVICE_TYPE_SD) {
 				error = sdmmc_set_default_region(hsdmmc);
 				if (error != TEGRABL_NO_ERROR) {
@@ -1565,21 +1565,21 @@ tegrabl_error_t sdmmc_init(uint32_t instance, struct tegrabl_sdmmc *hsdmmc, uint
 	}
 
 	/* Enable clocks for input sdmmc instance. */
-	pr_trace("Enabling clock\n");
+	pr_debug("Enabling clock\n");
 	error = sdmmc_clock_init(hsdmmc->controller_id, CLK_102_MHZ,
 								hsdmmc->clk_src);
 	if (error != TEGRABL_NO_ERROR) {
 		goto fail;
 	}
 	/* Initiliaze controller. */
-	pr_trace("Initialize controller\n");
+	pr_debug("Initialize controller\n");
 	error = sdmmc_init_controller(hsdmmc, instance);
 	if (error != TEGRABL_NO_ERROR) {
 		goto fail;
 	}
 
 	/* Identify card. */
-	pr_trace("Identify card\n");
+	pr_debug("Identify card\n");
 
 #if defined(CONFIG_ENABLE_SDCARD)
 	if (hsdmmc->device_type == DEVICE_TYPE_SD)
@@ -1593,13 +1593,13 @@ tegrabl_error_t sdmmc_init(uint32_t instance, struct tegrabl_sdmmc *hsdmmc, uint
 	}
 
 	/* Setup card for data transfer. */
-	pr_trace("Set card for data transfer\n");
+	pr_debug("Set card for data transfer\n");
 	error = sdmmc_select_mode_transfer(hsdmmc);
 	if (error != TEGRABL_NO_ERROR) {
 		goto fail;
 	}
 	/* Setup the default region of operation as user partition. */
-	pr_trace("Set default region as user partition\n");
+	pr_debug("Set default region as user partition\n");
 	if (hsdmmc->device_type != DEVICE_TYPE_SD) {
 		error = sdmmc_set_default_region(hsdmmc);
 		if (error != TEGRABL_NO_ERROR) {

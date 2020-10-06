@@ -121,11 +121,11 @@ tegrabl_error_t sd_bdev_open(uint32_t instance, struct tegrabl_sd_platform_param
 		goto fail;
 	}
 
-	pr_trace("Instance: %d\n", instance);
+	pr_debug("Instance: %d\n", instance);
 	hsdmmc = contexts[instance];
 
 	/* Allocate memory for context*/
-	pr_trace("Allocating memory for context\n");
+	pr_debug("Allocating memory for context\n");
 	hsdmmc = tegrabl_alloc(TEGRABL_HEAP_DMA, sizeof(struct tegrabl_sdmmc));
 
 	/* Check for memory allocation. */
@@ -145,7 +145,7 @@ tegrabl_error_t sd_bdev_open(uint32_t instance, struct tegrabl_sd_platform_param
 	hsdmmc->trim_value = 5;
 
 	/* Call sdmmc_init to proceed with initialization. */
-	pr_trace("sdmmc init\n");
+	pr_debug("sdmmc init\n");
 
 	if (params->vmmc_supply) {
 		error = tegrabl_regulator_enable(params->vmmc_supply);
@@ -178,7 +178,7 @@ tegrabl_error_t sd_bdev_open(uint32_t instance, struct tegrabl_sd_platform_param
 
 	if (!contexts[hsdmmc->controller_id]) {
 		/* Fill the required function pointers and register the device. */
-		pr_trace("sd device register\n");
+		pr_debug("sd device register\n");
 		error = sd_register_region(hsdmmc);
 		if (error != TEGRABL_NO_ERROR) {
 			goto fail;
