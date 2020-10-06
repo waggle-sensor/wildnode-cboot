@@ -86,7 +86,7 @@ tegrabl_error_t usb_sd_boot_load_kernel_and_dtb(uint8_t boot_type,
 {
 	char *boot_type_str = NULL;
 	uint8_t device_type = 0;
-	uint8_t device_instance = 0;
+	uint32_t device_instance = 0;
 	struct tegrabl_device_config_params device_config = {0};
 	struct tegrabl_bdev *bdev = NULL;
 	struct tegrabl_fm_handle *fm_handle = NULL;
@@ -115,7 +115,7 @@ tegrabl_error_t usb_sd_boot_load_kernel_and_dtb(uint8_t boot_type,
 	}
 
 	/* Initialize storage device */
-	err = init_storage_device(&device_config, device_type, device_instance);
+	err = init_storage_device(&device_config, device_type, &device_instance);
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("Failed to initialize device %u-%u\n", device_type, device_instance);
 		goto fail;

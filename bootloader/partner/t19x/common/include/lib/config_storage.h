@@ -52,7 +52,7 @@ tegrabl_error_t config_storage_deinit(void);
  */
 tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_config,
 									tegrabl_storage_type_t device_type,
-									uint8_t instance);
+									uint32_t *instance);
 
 #endif /*INCLUDED_CONFIG_STORAGE_H */
 
