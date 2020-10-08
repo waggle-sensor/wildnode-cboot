@@ -44,10 +44,12 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 
 	err = TEGRABL_ERROR(TEGRABL_ERR_NOT_FOUND, 0);
 	for (i = 0; i < ARRAY_SIZE(sdmmc_nodes); i++) {
+		pr_info("Trying sdmmc interface: %s\n", sdmmc_nodes[i]);
 		name = fdt_get_alias(fdt, sdmmc_nodes[i]);
 		if (name == NULL) {
 			continue;
 		}
+		pr_info("Alias name: %s\n", name);
 		offset = fdt_path_offset(fdt, name);
 		if (offset < 0) {
 			err = TEGRABL_ERROR(TEGRABL_ERR_NOT_FOUND, 1);
@@ -73,7 +75,7 @@ tegrabl_error_t tegrabl_sd_get_platform_params(uint32_t *instance, struct tegrab
 		}
 
 		*instance = i;
-		pr_trace("sdcard instance = %d\n", i);
+		pr_info("sdcard instance = %d\n", i);
 
 		data = fdt_getprop(fdt, offset, "cd-gpios", &len);
 		if ((data == NULL) || (len < 0))
