@@ -40,11 +40,17 @@ while getopts "t:z?" opt; do
   esac
 done
 
+# create version string
+BASE_VERSION="$(cat 'version' | xargs)"
+GIT_SHA=$(git rev-parse --short HEAD)
+DIRTY=$([[ -z $(git status -s) ]] || echo '-dirty')
+PROJ_VERSION=${BASE_VERSION}-${GIT_SHA}${DIRTY}
+
 # constant string definitions
 C_TC_BIN_PATH="/bin/aarch64-linux-gnu-"
 C_WORK=`pwd`/"out"
 C_WORK_LK="${C_WORK}/build-t194/lk.bin"
-C_OUT_CBOOT=`pwd`/cboot_t194.bin
+C_OUT_CBOOT=`pwd`/cboot_t194_"${PROJ_VERSION}".bin
 C_L4T_CBOOT=Linux_for_Tegra/bootloader/cboot_t194.bin
 C_MAKE_PATH=./bootloader/partner/t18x/cboot
 C_MAKE_DEBUG=2
