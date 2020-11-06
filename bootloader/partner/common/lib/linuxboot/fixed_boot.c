@@ -172,7 +172,12 @@ tegrabl_error_t fixed_boot_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel
 		err = TEGRABL_ERROR(TEGRABL_ERR_OPEN_FAILED, 0);
 		goto fail;
 	}
-	tegrabl_fm_publish(bdev, &fm_handle);
+	err = tegrabl_fm_publish(bdev, &fm_handle);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Partition publish failed, err: %u\n", err);
+		/* Unable to detect partitions in media, no reason to proceed */
+		goto fail;
+	}
 
 	err = extlinux_boot_load_kernel_and_dtb(fm_handle, boot_img_load_addr, dtb_load_addr, kernel_size);
 	if (err == TEGRABL_NO_ERROR) {
