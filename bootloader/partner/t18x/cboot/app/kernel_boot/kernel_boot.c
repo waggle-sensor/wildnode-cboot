@@ -178,12 +178,19 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 	tegrabl_get_kernel_bootctrl(&kernel->bootctrl);
 #endif
 
+	/*
+	 * Update smd if a/b retry counter changed
+	 * The slot priorities are rotated here too,
+	 * in case kernel or kernel-dtb load failed.
+	*/
+	tegrabl_a_b_update_smd();
+
 	err = tegrabl_load_kernel_and_dtb(kernel, &kernel_entry_point,
 									  &kernel_dtb, &callbacks, NULL, 0);
 	if (err != TEGRABL_NO_ERROR) {
 		TEGRABL_SET_HIGHEST_MODULE(err);
-		pr_error("kernel boot failed\n");
-		return err;
+		pr_error("kernel boot failed, will reset.\n");
+		tegrabl_reset();
 	}
 
 #if defined(CONFIG_OS_IS_ANDROID)
@@ -199,9 +206,6 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 #if defined(IS_T186)
 	tegrabl_profiler_record("kernel_boot exit", 0, DETAILED);
 #endif
-
-	/* Update smd if a/b retry counter changed */
-	tegrabl_a_b_update_smd();
 
 	pr_info("Kernel EP: %p, DTB: %p\n", kernel_entry_point, kernel_dtb);
 
