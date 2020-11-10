@@ -295,6 +295,7 @@ tegrabl_error_t tegrabl_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel,
 
 		case BOOT_FROM_BUILTIN_STORAGE:
 		default:
+			pr_error("JOE attempting Builtin storage boot BOOT_FROM_BUILTIN_STORAGE\n");
 			err = fixed_boot_load_kernel_and_dtb(kernel,
 												 &boot_img_load_addr,
 												 kernel_dtb,

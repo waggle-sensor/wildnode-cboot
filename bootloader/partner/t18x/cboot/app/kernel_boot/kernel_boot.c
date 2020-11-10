@@ -183,7 +183,8 @@ tegrabl_error_t load_and_boot_kernel(struct tegrabl_kernel_bin *kernel)
 	 * The slot priorities are rotated here too,
 	 * in case kernel or kernel-dtb load failed.
 	*/
-	tegrabl_a_b_update_smd();
+	err = tegrabl_a_b_update_smd();
+	pr_error("JOE a/b rotate error [%u].\n", err);
 
 	err = tegrabl_load_kernel_and_dtb(kernel, &kernel_entry_point,
 									  &kernel_dtb, &callbacks, NULL, 0);
@@ -308,14 +309,19 @@ static void kernel_boot_init(const struct app_descriptor *app)
 
 static void kernel_boot_entry(const struct app_descriptor *app, void *args)
 {
+	pr_error("JOE kernel_boot_entry\n");
 #if defined(CONFIG_ENABLE_A_B_SLOT)
 	status_t err = NO_ERROR;
+	pr_error("JOE kernel_boot_entry->kernel_boot 1 (a/b enable)\n");
 	err = kernel_boot();
+	pr_error("JOE kernel_boot_entry->kernel_boot err[%u]\n", err);
+	pr_error("JOE tegrabl_is_wdt_enable [%d]\n", tegrabl_is_wdt_enable());
 	if (err != NO_ERROR && !tegrabl_is_wdt_enable()) {
 		pr_critical("failed to load kernel, reboot it\n");
 		tegrabl_reset();
 	}
 #else
+	pr_error("JOE kernel_boot_entry->kernel_boot 2\n");
 	kernel_boot();
 #endif
 }
@@ -344,4 +350,3 @@ STATIC_COMMAND_START
 STATIC_COMMAND("boot", "kernel boot", &kernel_boot_cmd)
 STATIC_COMMAND_END(kernel_boot_cmd);
 #endif
-

@@ -173,6 +173,7 @@ tegrabl_error_t fixed_boot_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel
 		goto fail;
 	}
 	err = tegrabl_fm_publish(bdev, &fm_handle);
+	pr_error("JOE tegrabl_fm_publish results err[%u]\n", err);
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("Partition publish failed, err: %u\n", err);
 		/* Unable to detect partitions in media, no reason to proceed */
@@ -180,14 +181,18 @@ tegrabl_error_t fixed_boot_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel
 	}
 
 	err = extlinux_boot_load_kernel_and_dtb(fm_handle, boot_img_load_addr, dtb_load_addr, kernel_size);
+	pr_error("JOE extlinux_boot_load_kernel_and_dtb results err[%u]\n", err);
 	if (err == TEGRABL_NO_ERROR) {
+		pr_error("JOE enter NO ERROR\n");
 		err = extlinux_boot_load_ramdisk(fm_handle, ramdisk_load_addr, ramdisk_size);
+		pr_error("JOE extlinux_boot_load_ramdisk results err[%u]\n", err);
 		if (err == TEGRABL_NO_ERROR) {
+			pr_error("JOE enter NO ERROR 2\n");
 			extlinux_boot_set_status(true);
 		}
 		goto fail;  /* There is no fallback for ramdisk, so let caller handle the error */
 	}
-	pr_info("Fallback: Load binaries from partition\n");
+	pr_error("Fallback: Load binaries from partition\n");
 #else
 	TEGRABL_UNUSED(ramdisk_load_addr);
 	TEGRABL_UNUSED(kernel_size);
@@ -195,6 +200,7 @@ tegrabl_error_t fixed_boot_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel
 #endif
 
 	err = tegrabl_load_from_partition(kernel, boot_img_load_addr, dtb_load_addr, kernel_dtbo, data, data_size);
+	pr_error("JOE tegrabl_load_from_partition results err[%u]\n", err);
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("Storage boot failed, err: %u\n", err);
 #if defined(CONFIG_ENABLE_A_B_SLOT)
