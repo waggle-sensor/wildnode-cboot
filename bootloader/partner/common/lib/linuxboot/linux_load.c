@@ -305,7 +305,8 @@ tegrabl_error_t tegrabl_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel,
 												 &kernel_size,
 												 &ramdisk_size);
 			if (err != TEGRABL_NO_ERROR) {
-				goto fail;
+				pr_error("Builtin storage boot failed, err: %u\n", err);
+				continue;
 			}
 			is_load_done = true;
 			break;
