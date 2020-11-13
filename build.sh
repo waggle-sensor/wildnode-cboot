@@ -29,7 +29,7 @@ ARG_TOOLCHAIN=
 ARG_CLEAN=1
 while getopts "t:z?" opt; do
   case $opt in
-    t) ARG_TOOLCHAIN=$OPTARG
+    t) ARG_TOOLCHAIN=$(realpath $OPTARG)
       ;;
     z) ARG_CLEAN=
       ;;
