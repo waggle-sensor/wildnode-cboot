@@ -14,7 +14,7 @@ Builds are created using the `./build.sh` script. For help execute `./build.sh -
 **Note**: this build **must be executed on a Linux host**. Executing the Linux
 build in a Docker container is not supported at this time.
 
-Building requires 1 thing1:
+Building requires 1 thing:
 
 1. The path to the GCC Linaro toolchain for building the ARM64 bootloader (see below).
 
@@ -55,18 +55,17 @@ all the above packages may be required.
 #### Jetson Linux Driver Toolchain
 
 In order the compile the kernel the Jetson Linux Driver Toolchain must be used.
-The download and usage instructions can be found at on the
-[Jetson Linux Driver Toolchain](https://docs.nvidia.com/jetson/l4t/index.html#page/Tegra%20Linux%20Driver%20Package%20Development%20Guide/xavier_toolchain.html)
-page.
+The NVidia Jetson toolchain has been saved to
+[Jetson Linux Driver Toolchain GitHub](https://github.com/waggle-sensor/nvidia_toolchain).
 
-To use the toolchain with the `./build.sh` script, download the toolchain from this
-(currently existing) link: [http://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/aarch64-linux-gnu/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz](http://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/aarch64-linux-gnu/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz)
+To use the toolchain with the `./build.sh` script, download the toolchain from:
+[https://github.com/waggle-sensor/nvidia_toolchain/raw/master/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz](https://github.com/waggle-sensor/nvidia_toolchain/raw/master/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz)
 and extract to a local directory.
 
 ```
 mkdir /path/to/toolchain/
 cd /path/to/toolchain/
-wget http://releases.linaro.org/components/toolchain/binaries/7.3-2018.05/aarch64-linux-gnu/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
+wget https://github.com/waggle-sensor/nvidia_toolchain/raw/master/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
 tar xf gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu.tar.xz
 ```
 
