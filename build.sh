@@ -2,12 +2,13 @@
 
 function print_help() {
   echo """
-usage: build.sh -t <L4T toolchain>
+usage: build.sh -t <L4T toolchain> [-f]
 
 Creates the CBoot (lk; little kernel) binary.
 
   -t : path to the Jetson Driver Linux toolchain (i.e. parent directory to bin/aarch64-linux-gnu-)
   -z : (optional) leave the make output directory instead of cleaning it up
+  -f : force the build to proceed (debugging only) without checking for tagged commit
 """
 }
 
@@ -27,11 +28,16 @@ trap cleanup EXIT
 # input arguments
 ARG_TOOLCHAIN=
 ARG_CLEAN=1
-while getopts "t:z?" opt; do
+FORCE=
+while getopts "t:zf?" opt; do
   case $opt in
     t) ARG_TOOLCHAIN=$(realpath $OPTARG)
       ;;
     z) ARG_CLEAN=
+      ;;
+    f) # force build
+      echo "** Force build: ignore tag depth check **"
+      FORCE=1
       ;;
     ?|*)
       print_help
@@ -41,10 +47,15 @@ while getopts "t:z?" opt; do
 done
 
 # create version string
-BASE_VERSION="$(cat 'version' | xargs)"
-GIT_SHA=$(git rev-parse --short HEAD)
-DIRTY=$([[ -z $(git status -s) ]] || echo '-dirty')
-PROJ_VERSION=${BASE_VERSION}-${GIT_SHA}${DIRTY}
+PROJ_VERSION=$(git describe --tags --long --dirty | cut -c2-)
+
+TAG_DEPTH=$(echo ${PROJ_VERSION} | cut -d '-' -f 2)
+if [[ -z "${FORCE}" && "${TAG_DEPTH}_" != "0_" ]]; then
+  echo "Error:"
+  echo "  The current git commit has not been tagged. Please create a new tag first to ensure a proper unique version number."
+  echo "  Use -f to ignore error (for debugging only)."
+  exit 1
+fi
 
 # constant string definitions
 C_TC_BIN_PATH="/bin/aarch64-linux-gnu-"
