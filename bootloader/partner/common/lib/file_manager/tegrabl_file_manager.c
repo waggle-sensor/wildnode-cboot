@@ -342,6 +342,58 @@ fail:
 	return err;
 }
 
+/* TODO
+*/
+tegrabl_error_t tegrabl_fm_remove(struct tegrabl_fm_handle *handle,
+								char *file_path)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	char path[200];
+	int32_t status = 0x0;
+
+	pr_trace("%s(): %u\n", __func__, __LINE__);
+
+	if (handle == NULL) {
+		pr_error("Null handle passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0x3);
+		goto fail;
+	}
+
+	if (handle->mount_path == NULL) {
+		pr_error("Null handle mount path passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0x2);
+		goto fail;
+	}
+
+	if (file_path == NULL) {
+		pr_error("Null file path passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0x1);
+		goto fail;
+	}
+
+	/* Load file from FS */
+	if ((strlen(handle->mount_path) + strlen(file_path)) >= sizeof(path)) {
+		pr_error("Destination buffer is insufficient to hold file path\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_OVERFLOW, 0x2);
+		goto fail;
+	}
+	memset(path, '\0', ARRAY_SIZE(path));
+	strcpy(path, handle->mount_path);
+	strcat(path, file_path);
+
+	pr_info("rootfs path: %s\n", path);
+
+	status = fs_remove_file(path);
+	if (status != 0x0) {
+		pr_error("remove %s open failed!!\n", path);
+		err = TEGRABL_ERROR(TEGRABL_ERR_REMOVE_FAILED, 0x0);
+		goto fail;
+	}
+
+fail:
+	return err;
+}
+
 /**
 * @brief Unmount the filesystem and freeup memory.
 *

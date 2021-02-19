@@ -177,8 +177,9 @@ typedef uint32_t tegrabl_error_t;
 #define TEGRABL_ERR_NOT_READY 0x43U
 #define TEGRABL_ERR_CP_MV_FAILED 0x44U
 #define TEGRABL_ERR_NOT_ALIGNED 0x45U
+#define TEGRABL_ERR_REMOVE_FAILED 0x46U
  /**** This should be last *******/
-#define TEGRABL_ERR_REASON_END 0x46U
+#define TEGRABL_ERR_REASON_END 0x47U
 #define TEGRABL_ERR_REASON_MAX 0xffU
 
 typedef uint32_t tegrabl_err_reason_t;

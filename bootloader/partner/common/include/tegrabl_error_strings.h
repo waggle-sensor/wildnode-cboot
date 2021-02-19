@@ -80,5 +80,6 @@
 #define TEGRABL_ERR_NOT_READY_STRING		"{1} is not ready.\n"
 #define TEGRABL_ERR_CP_MV_FAILED_STRING		"Failed to copy/move {1} from {2} to {3}.\n"
 #define TEGRABL_ERR_NOT_ALIGNED_STRING		"{1} is not aligned to {2}.\n"
+#define TEGRABL_ERR_REMOVE_FAILED_STRING    "Failed to remove {1}.\n"
 
 #endif  /*  INCLUDED_TEGRABL_ERROR_STRINGS_H */
