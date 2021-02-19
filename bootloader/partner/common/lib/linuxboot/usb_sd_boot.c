@@ -27,6 +27,7 @@
 #if defined(CONFIG_ENABLE_EXTLINUX_BOOT)
 #include <extlinux_boot.h>
 #endif
+#include <recovery_test.h>
 #include <usb_sd_boot.h>
 
 static tegrabl_error_t load_from_partition(struct tegrabl_fm_handle *fm_handle,
@@ -127,6 +128,24 @@ tegrabl_error_t usb_sd_boot_load_kernel_and_dtb(uint8_t boot_type,
 		err = TEGRABL_ERROR(TEGRABL_ERR_OPEN_FAILED, 0);
 		goto fail;
 	}
+
+	// JOE, call tegrabl_fm_publish(BL GUIID)
+	err = tegrabl_fm_publish(bdev, &fm_handle, RECOVERY_PARTITION);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Partition %s publish failed, err: %u\n", RECOVERY_PARTITION, err);
+		/* Unable to detect partitions in media, no reason to proceed */
+		goto fail;
+	}
+	// call function to check media and fail the boot if it doesn pass tests
+	err = recovery_test(fm_handle);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("Bootloader recovery check failed,  err: %u\n", err);
+		goto fail;
+	}
+	// close and unmount the partition
+	tegrabl_fm_close(fm_handle);
+	fm_handle = NULL;
+
 	tegrabl_fm_publish(bdev, &fm_handle, NULL);
 	if (fm_handle == NULL) {
 		/* Above publish function prints the error msg, so no need to again print the error here */
