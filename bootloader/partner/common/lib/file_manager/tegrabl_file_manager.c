@@ -66,19 +66,22 @@ struct tegrabl_fm_handle *tegrabl_file_manager_get_handle(void)
 }
 
 /**
-* @brief Publish the partitions available in the GPT and try to mount the FS in "BOOT" partition.
-* If GPT itself is not available, try to detect FS from sector 0x0 and mount it.
+* @brief Publish the partitions available in the GPT and try to mount the
+* specified partition, falling back to FS in "BOOT" partition.
+* If GPT itself is not available, try to detect FS from sector 0x0 and mount it ("BOOT" only).
 *
 * @param bdev storage device pointer
+* @param handle double pointer to file manager handle
+* @param optional partition name.  A value of "NULL" assumes the "boot" partition
 *
-* @return File manager handle
+* @return TEGRABL_NO_ERROR if success, specific error if fails.
 */
-tegrabl_error_t tegrabl_fm_publish(tegrabl_bdev_t *bdev, struct tegrabl_fm_handle **handle)
+tegrabl_error_t tegrabl_fm_publish(tegrabl_bdev_t *bdev, struct tegrabl_fm_handle **handle, const char *partition_name)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 #if defined(CONFIG_ENABLE_EXTLINUX_BOOT)
 	char *nvidia_boot_pt_guid = NULL;
-	struct tegrabl_partition boot_partition = {0};
+	struct tegrabl_partition detected_partition = {0};
 	char *fs_type;
 	char *prefix = NULL;
 	uint32_t detect_fs_sector;
@@ -101,23 +104,35 @@ tegrabl_error_t tegrabl_fm_publish(tegrabl_bdev_t *bdev, struct tegrabl_fm_handl
 	err = tegrabl_partition_publish(bdev, 0);
 	if (err != TEGRABL_NO_ERROR) {
 #if defined(CONFIG_ENABLE_EXTLINUX_BOOT)
-		/* GPT does not exist, detect FS from start sector of the device */
-		detect_fs_sector = 0x0;
-		goto detect_fs;
+		/* Only assume sectors for "Boot" partition */
+		if (partition_name == NULL) {
+			/* GPT does not exist, detect FS from start sector of the device */
+			detect_fs_sector = 0x0;
+			goto detect_fs;
+		}
+		goto fail;
 #else
 		goto fail;
 #endif
 	}
 
 #if defined(CONFIG_ENABLE_EXTLINUX_BOOT)
-	pr_info("Look for boot partition\n");
-	nvidia_boot_pt_guid = tegrabl_get_boot_pt_guid();
-	err = tegrabl_partition_boot_guid_lookup_bdev(nvidia_boot_pt_guid, &boot_partition, bdev);
-	if (err != TEGRABL_NO_ERROR) {
-		goto fail;
+	if (partition_name == NULL) {
+		pr_info("Look for boot partition\n");
+		nvidia_boot_pt_guid = tegrabl_get_boot_pt_guid();
+		err = tegrabl_partition_boot_guid_lookup_bdev(nvidia_boot_pt_guid, &detected_partition, bdev);
+		if (err != TEGRABL_NO_ERROR) {
+			goto fail;
+		}
+		/* BOOT partition exists! */
+	} else {
+		pr_info("Look for %s partition\n", partition_name);
+		err = tegrabl_partition_lookup_bdev(partition_name, &detected_partition, bdev);
+		if (err != TEGRABL_NO_ERROR) {
+			goto fail;
+		}
 	}
-	/* BOOT partition exists! */
-	detect_fs_sector = boot_partition.partition_info->start_sector;
+	detect_fs_sector = detected_partition.partition_info->start_sector;
 
 detect_fs:
 	pr_info("Detect filesystem\n");

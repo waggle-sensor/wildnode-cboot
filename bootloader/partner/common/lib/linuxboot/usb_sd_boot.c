@@ -127,7 +127,7 @@ tegrabl_error_t usb_sd_boot_load_kernel_and_dtb(uint8_t boot_type,
 		err = TEGRABL_ERROR(TEGRABL_ERR_OPEN_FAILED, 0);
 		goto fail;
 	}
-	tegrabl_fm_publish(bdev, &fm_handle);
+	tegrabl_fm_publish(bdev, &fm_handle, NULL);
 	if (fm_handle == NULL) {
 		/* Above publish function prints the error msg, so no need to again print the error here */
 		goto fail;

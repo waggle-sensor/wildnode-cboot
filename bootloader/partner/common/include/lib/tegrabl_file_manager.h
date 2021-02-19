@@ -26,15 +26,17 @@ struct tegrabl_fm_handle {
 };
 
 /**
- * @brief Publish the partitions available in the GPT and try to mount the FS in "BOOT" partition.
- * If GPT itself is not available, try to detect FS from sector 0x0 and mount it.
+ * @brief Publish the partitions available in the GPT and try to mount the
+ * specified partition, falling back to FS in "BOOT" partition.
+ * If GPT itself is not available, try to detect FS from sector 0x0 and mount it ("BOOT" only).
  *
  * @param bdev storage device pointer
  * @param handle double pointer to file manager handle
+ * @param optional partition name.  A value of "NULL" assumes the "boot" partition
  *
  * @return TEGRABL_NO_ERROR if success, specific error if fails.
  */
-tegrabl_error_t tegrabl_fm_publish(tegrabl_bdev_t *bdev, struct tegrabl_fm_handle **handle);
+tegrabl_error_t tegrabl_fm_publish(tegrabl_bdev_t *bdev, struct tegrabl_fm_handle **handle, const char *partition_name);
 
 /**
  * @brief Read the file from partiton.
