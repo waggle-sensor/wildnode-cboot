@@ -342,6 +342,87 @@ fail:
 	return err;
 }
 
+/* TODO */
+tegrabl_error_t tegrabl_fm_write(struct tegrabl_fm_handle *handle,
+								char *file_path,
+								void *load_address,
+								uint32_t size)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	char path[200];
+	filehandle *fh = NULL;
+	// struct file_stat stat;
+	int32_t status = 0x0;
+
+	pr_trace("%s(): %u\n", __func__, __LINE__);
+
+	if (handle == NULL) {
+		pr_error("Null handle passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0x3);
+		goto fail;
+	}
+
+	if (handle->mount_path == NULL) {
+		pr_error("Null handle mount path passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0x2);
+		goto fail;
+	}
+
+	if (file_path == NULL) {
+		pr_error("Null file path passed\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0x1);
+		goto fail;
+	}
+
+	/* Load file from FS */
+	if ((strlen(handle->mount_path) + strlen(file_path)) >= sizeof(path)) {
+		pr_error("Destination buffer is insufficient to hold file path\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_OVERFLOW, 0x2);
+		goto fail;
+	}
+	memset(path, '\0', ARRAY_SIZE(path));
+	strcpy(path, handle->mount_path);
+	strcat(path, file_path);
+
+	pr_info("rootfs path: %s\n", path);
+
+	status = fs_open_file(path, &fh);
+	if (status != 0x0) {
+		pr_error("file %s open failed!!\n", path);
+		err = TEGRABL_ERROR(TEGRABL_ERR_OPEN_FAILED, 0x0);
+		goto fail;
+	}
+
+	// status = fs_stat_file(fh, &stat);
+	// if (status != 0x0) {
+	// 	pr_error("file %s stat failed!!\n", path);
+	// 	err = TEGRABL_ERROR(TEGRABL_ERR_OPEN_FAILED, 0x1);
+	// 	goto fail;
+	// }
+	//
+	// /* Check for file overflow */
+	// if (*size < stat.size) {
+	// 	err = TEGRABL_ERROR(TEGRABL_ERR_OVERFLOW, 0x0);
+	// 	goto load_from_partition;
+	// }
+
+	status = fs_write_file(fh, load_address, 0x0, size);
+	if (status < 0) {
+		pr_error("file %s write failed!!\n", path);
+		err = TEGRABL_ERROR(TEGRABL_ERR_WRITE_FAILED, 0x1);
+		goto fail;
+	}
+
+	/* Save the handle */
+	fm_handle = handle;
+
+fail:
+	if (fh != NULL) {
+		fs_close_file(fh);
+	}
+	return err;
+}
+
 /* TODO
 */
 tegrabl_error_t tegrabl_fm_remove(struct tegrabl_fm_handle *handle,

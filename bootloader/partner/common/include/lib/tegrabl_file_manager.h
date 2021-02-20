@@ -72,6 +72,12 @@ tegrabl_error_t tegrabl_fm_read(struct tegrabl_fm_handle *handle,
 								uint32_t *size,
 								bool *is_file_loaded_from_fs);
 
+/* TODO */
+tegrabl_error_t tegrabl_fm_write(struct tegrabl_fm_handle *handle,
+								char *file_path,
+								void *load_address,
+								uint32_t size);
+
 /* TODO
 */
 tegrabl_error_t tegrabl_fm_remove(struct tegrabl_fm_handle *handle,
