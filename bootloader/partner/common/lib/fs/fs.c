@@ -31,8 +31,9 @@
 #include <ext4_priv.h>
 #include <lk/init.h>
 #include <tegrabl_blockdev.h>
+#include <tegrabl_debug.h>
 
-#define LOCAL_TRACE 0
+#define LOCAL_TRACE 1
 
 struct dirhandle {
     dircookie *cookie;
@@ -325,20 +326,25 @@ status_t fs_remove_file(const char *path)
 
     strlcpy(temppath, path, sizeof(temppath));
     fs_normalize_path(temppath);
-
+    pr_error("fs_remove_file 0\n");
     const char *newpath;
     struct fs_mount *mount = find_mount(temppath, &newpath);
-    if (!mount)
+    if (!mount) {
+        pr_error("fs_remove_file 1\n");
         return ERR_NOT_FOUND;
-
+    }
+    pr_error("fs_remove_file 3\n");
     if (!mount->api->remove) {
+        pr_error("fs_remove_file 4\n");
         put_mount(mount);
         return ERR_NOT_SUPPORTED;
     }
 
+    pr_error("fs_remove_file 5\n");
     status_t err = mount->api->remove(mount->cookie, newpath);
-
+    pr_error("fs_remove_file 6\n");
     put_mount(mount);
+    pr_error("fs_remove_file 7\n");
 
     return err;
 }
@@ -350,9 +356,12 @@ ssize_t fs_read_file(filehandle *handle, void *buf, off_t offset, size_t len)
 
 ssize_t fs_write_file(filehandle *handle, const void *buf, off_t offset, size_t len)
 {
-    if (!handle->mount->api->write)
+    pr_error("fs_write_file 1\n");
+    if (!handle->mount->api->write) {
+        pr_error("fs_write_file 2\n");
         return ERR_NOT_SUPPORTED;
-
+    }
+    pr_error("fs_write_file 3\n");
     return handle->mount->api->write(handle->cookie, buf, offset, len);
 }
 
@@ -649,4 +658,3 @@ void fs_normalize_path(char *path)
 
     path[outpos++] = 0;
 }
-

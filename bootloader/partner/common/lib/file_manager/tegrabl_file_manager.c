@@ -466,7 +466,7 @@ tegrabl_error_t tegrabl_fm_remove(struct tegrabl_fm_handle *handle,
 
 	status = fs_remove_file(path);
 	if (status != 0x0) {
-		pr_error("remove %s open failed!!\n", path);
+		pr_error("file %s remove failed, %u!!\n", path, status);
 		err = TEGRABL_ERROR(TEGRABL_ERR_REMOVE_FAILED, 0x0);
 		goto fail;
 	}
