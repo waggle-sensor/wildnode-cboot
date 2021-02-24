@@ -29,8 +29,12 @@ typedef uint32_t tegrabl_instance_i2c_t;
 #define TEGRABL_INSTANCE_I2C7 6
 #define TEGRABL_INSTANCE_I2C8 7
 #define TEGRABL_INSTANCE_I2C9 8
-#define TEGRABL_INSTANCE_I2C_MAX TEGRABL_INSTANCE_I2C9
-#define TEGRABL_INSTANCE_I2C_INVALID 9
+#define TEGRABL_INSTANCE_I2C10 9
+#define TEGRABL_INSTANCE_I2C11 10
+#define TEGRABL_INSTANCE_I2C12 11
+#define TEGRABL_INSTANCE_I2C13 12
+#define TEGRABL_INSTANCE_I2C_MAX TEGRABL_INSTANCE_I2C13
+#define TEGRABL_INSTANCE_I2C_INVALID 13
 
 #define MAX_I2C_TRANSFER_SIZE (0x1000U)
 
@@ -158,4 +162,3 @@ tegrabl_error_t tegrabl_i2c_bus_clear(struct tegrabl_i2c *hi2c);
 tegrabl_error_t tegrabl_i2c_close(struct tegrabl_i2c *hi2c);
 
 #endif
-

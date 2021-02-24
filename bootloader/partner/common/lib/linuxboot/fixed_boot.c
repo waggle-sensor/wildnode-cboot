@@ -27,6 +27,7 @@
 #endif
 #include <recovery_test.h>
 #include <fixed_boot.h>
+#include <tegrabl_i2c_dev.h>
 
 #define KERNEL_DTBO_PART_SIZE	 (1024 * 1024 * 1)
 
@@ -174,22 +175,25 @@ tegrabl_error_t fixed_boot_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel
 		goto fail;
 	}
 
-	// JOE, call tegrabl_fm_publish(BL GUIID)
-	err = tegrabl_fm_publish(bdev, &fm_handle, RECOVERY_PARTITION);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Partition %s publish failed, err: %u\n", RECOVERY_PARTITION, err);
-		/* Unable to detect partitions in media, no reason to proceed */
-		goto fail;
+	// JOE, dump eeprom data
+	struct tegrabl_i2c_dev *hi2c2 = tegrabl_i2c_dev_open(TEGRABL_INSTANCE_I2C3, 0x50, 2, 1);
+	if (!hi2c2)
+	{
+		pr_error("JOE invalid i2c2 handle\n");
 	}
-	// call function to check media and fail the boot if it doesn pass tests
-	err = recovery_test(fm_handle);
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Bootloader recovery check failed,  err: %u\n", err);
-		goto fail;
+	else
+	{
+		uint8_t buf;
+		pr_error("JOE valid i2c2 handle\n");
+		err = tegrabl_i2c_dev_read(hi2c2, &buf, 1, sizeof(uint8_t));
+		if (err != TEGRABL_NO_ERROR)
+			pr_error("JOE i2c2 error\n");
+		else
+			pr_error("JOE %d 0x%02x\n", buf, buf);
 	}
-	// close and unmount the partition
-	tegrabl_fm_close(fm_handle);
-	fm_handle = NULL;
+	pr_error("JOE done\n");
+
+
 
 	err = tegrabl_fm_publish(bdev, &fm_handle, NULL);
 	if (err != TEGRABL_NO_ERROR) {
