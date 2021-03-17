@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2017-2020, NVIDIA Corporation.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -297,6 +297,34 @@ static uint32_t pwm_module_instances[PWM_MAX_INSTANCES][2] = {
 	{TEGRA194_CLK_PWM6, TEGRA194_RESET_PWM6},
 	{TEGRA194_CLK_PWM7, TEGRA194_RESET_PWM7},
 	{TEGRA194_CLK_PWM8, TEGRA194_RESET_PWM8},
+};
+
+static int32_t pcie_core_rst_map[] = {
+	TEGRA194_RESET_PEX0_CORE_0,
+	TEGRA194_RESET_PEX0_CORE_1,
+	TEGRA194_RESET_PEX0_CORE_2,
+	TEGRA194_RESET_PEX0_CORE_3,
+	TEGRA194_RESET_PEX0_CORE_4,
+	TEGRA194_RESET_PEX1_CORE_5,
+};
+
+static int32_t pcie_core_clk_map[] = {
+	TEGRA194_CLK_PEX0_CORE_0,
+	TEGRA194_CLK_PEX0_CORE_1,
+	TEGRA194_CLK_PEX0_CORE_2,
+	TEGRA194_CLK_PEX0_CORE_3,
+	TEGRA194_CLK_PEX0_CORE_4,
+	TEGRA194_CLK_PEX1_CORE_5,
+};
+
+static int32_t pcie_apb_rst_map[] = {
+	TEGRA194_RESET_PEX0_CORE_0_APB,
+	TEGRA194_RESET_PEX0_CORE_1_APB,
+	TEGRA194_RESET_PEX0_CORE_2_APB,
+	TEGRA194_RESET_PEX0_CORE_3_APB,
+	TEGRA194_RESET_PEX0_CORE_4_APB,
+	TEGRA194_RESET_PEX1_CORE_5_APB,
+	TEGRA194_RESET_PEX0_COMMON_APB,
 };
 
 static int32_t tegrabl_module_to_bpmp_id(
@@ -630,6 +658,30 @@ static int32_t tegrabl_module_to_bpmp_id(
 	{
 		if (instance < PWM_MAX_INSTANCES) {
 			return pwm_module_instances[instance][clk_or_rst];
+		}
+		break;
+	}
+	case TEGRABL_MODULE_PCIE_CORE:
+	{
+		switch (clk_or_rst) {
+		case MOD_RST:
+			if (instance < ARRAY_SIZE(pcie_core_rst_map)) {
+				return pcie_core_rst_map[instance];
+			}
+			break;
+		case MOD_CLK:
+			if (instance < ARRAY_SIZE(pcie_core_clk_map)) {
+				return pcie_core_clk_map[instance];
+			}
+			break;
+		}
+	}
+	case TEGRABL_MODULE_PCIE_APB:
+	{
+		if (clk_or_rst == MOD_RST) {
+			if (instance < ARRAY_SIZE(pcie_apb_rst_map)) {
+				return pcie_apb_rst_map[instance];
+			}
 		}
 		break;
 	}
@@ -1790,4 +1842,67 @@ tegrabl_error_t tegrabl_clk_pll_hw_sequencer_enable(
 tegrabl_error_t tegrabl_clk_pll_hw_sequencer_disable(tegrabl_clk_pll_id_t pll_id)
 {
 	return internal_tegrabl_clk_pll_hw_sequencer_state(pll_id, false);
+}
+
+tegrabl_error_t tegrabl_pcie_unpowergate(uint32_t domain_id)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+
+	struct mrq_pg_request pg_request = {
+		.cmd = CMD_PG_SET_STATE,
+		.id = domain_id,
+		.set_state = {
+			.state = PG_STATE_ON,
+		}
+	};
+
+	if (domain_id <= TEGRA194_POWER_DOMAIN_MAX) {
+		err = tegrabl_ccplex_bpmp_xfer(&pg_request, NULL, sizeof(pg_request), 0, MRQ_PG);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_error("BPMP: PG_STATE_ON for %d failed\n", pg_request.id);
+			TEGRABL_SET_HIGHEST_MODULE(err);
+			goto fail;
+		} else {
+			pr_trace("BPMP: UnPowergated %d\n", pg_request.id);
+		}
+	} else {
+		err = TEGRABL_ERR_INVALID;
+	}
+
+fail:
+	return err;
+}
+
+tegrabl_error_t tegrabl_set_ctrl_state(uint8_t ctrl_num, bool enable)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+
+	struct mrq_uphy_request uphy_request = {
+		.cmd = CMD_UPHY_PCIE_CONTROLLER_STATE,
+		.controller_state = {
+			.pcie_controller = ctrl_num,
+			.enable = enable,
+		}
+	};
+
+	/* Controller-5 doesn't need to have its state set by BPMP-FW */
+	if (ctrl_num == 5) {
+		return TEGRABL_NO_ERROR;
+	}
+
+	if (ctrl_num < 5) {
+		err = tegrabl_ccplex_bpmp_xfer(&uphy_request, NULL, sizeof(uphy_request), 0, MRQ_UPHY);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_error("BPMP: set_ctrl_state for %d failed\n", ctrl_num);
+			TEGRABL_SET_HIGHEST_MODULE(err);
+			goto fail;
+		} else {
+			pr_trace("BPMP: set_ctrl_state %d\n", ctrl_num);
+		}
+	} else {
+		err = TEGRABL_ERR_INVALID;
+	}
+
+fail:
+	return err;
 }

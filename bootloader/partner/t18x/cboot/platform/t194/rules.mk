@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
+# Copyright (c) 2017-2020, NVIDIA CORPORATION.  All rights reserved.
 #
 # NVIDIA CORPORATION and its licensors retain all intellectual property
 # and proprietary rights in and to this software and related documentation
@@ -50,6 +50,7 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../../common/lib/tegrabl_error \
 	$(LOCAL_DIR)/../../../../common/drivers/sdmmc \
 	$(LOCAL_DIR)/../../../../common/drivers/sata \
+	$(LOCAL_DIR)/../../../../common/drivers/spi \
 	$(LOCAL_DIR)/../../../../common/drivers/ufs \
 	$(LOCAL_DIR)/../../../../common/drivers/gpcdma \
 	$(LOCAL_DIR)/../../../../common/drivers/qspi \
@@ -59,6 +60,7 @@ MODULE_DEPS += \
 	$(LOCAL_DIR)/../../../../common/drivers/eeprom \
 	$(LOCAL_DIR)/../../../../common/drivers/usbh \
 	$(LOCAL_DIR)/../../../../common/drivers/usb/storage \
+	$(LOCAL_DIR)/../../../../common/drivers/pcie \
 	$(LOCAL_DIR)/../../../../common/lib/eeprom_manager \
 	$(LOCAL_DIR)/../../../../common/arch/arm64 \
 	$(LOCAL_DIR)/../../../../t18x/common/lib/mce \

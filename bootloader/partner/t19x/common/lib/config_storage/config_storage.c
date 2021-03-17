@@ -39,6 +39,9 @@
 #include <tegrabl_usbmsd_bdev.h>
 #include <tegrabl_usbmsd.h>
 #endif
+#if defined(CONFIG_ENABLE_NVME_BOOT)
+#include <tegrabl_nvme.h>
+#endif
 #include <tegrabl_board_info.h>
 #include <tegrabl_malloc.h>
 #include <stdlib.h>
@@ -347,6 +350,18 @@ tegrabl_error_t init_storage_device(struct tegrabl_device_config_params *device_
 		}
 		break;
 #endif	/* USB_MS */
+#if defined(CONFIG_ENABLE_NVME_BOOT)
+	case TEGRABL_STORAGE_NVME:
+		device = "nvme";
+		/* source = "??? params"; */
+		err = tegrabl_nvme_bdev_open(instance);
+		if (err != TEGRABL_NO_ERROR) {
+			pr_warn("Failed to open NVME-%d, err = %x\n", instance, err);
+			goto fail;
+		}
+		break;
+#endif
+
 	default:
 		pr_error("Failed: Unknown device %d\n", (uint32_t)device_type);
 		flag = 1U;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -97,8 +97,8 @@
 #define FUSE_BOOT_SECURITY_INFO_ADDR_0_SHIFT			21
 #define FUSE_BOOT_SECURITY_INFO_ADDR_0_WIDTH			11
 #define FUSE_BOOT_SECURITY_INFO_ADDR_1			0x67
-#define FUSE_BOOT_SECURITY_INFO_ADDR_1_MASK			0xF8000000
-#define FUSE_BOOT_SECURITY_INFO_ADDR_1_SHIFT			(32 -5)
+#define FUSE_BOOT_SECURITY_INFO_ADDR_1_MASK			0xF800
+#define FUSE_BOOT_SECURITY_INFO_ADDR_1_SHIFT			(16 - 5)
 #define FUSE_BOOT_SECURITY_INFO_ADDR_1_WIDTH			5
 
 #define FUSE_RESERVED_ODM0_WIDTH			32
@@ -691,8 +691,8 @@
 #define FUSE_RESERVED_SW_ADDR_0_SHIFT			25
 #define FUSE_RESERVED_SW_ADDR_0_WIDTH			7
 #define FUSE_RESERVED_SW_ADDR_1			0x66
-#define FUSE_RESERVED_SW_ADDR_1_MASK			0xFFFF8000
-#define FUSE_RESERVED_SW_ADDR_1_SHIFT			(32 - 17)
+#define FUSE_RESERVED_SW_ADDR_1_MASK			0x00FFFF80
+#define FUSE_RESERVED_SW_ADDR_1_SHIFT			(24 - 17)
 #define FUSE_RESERVED_SW_ADDR_1_WIDTH			17
 
 #define FUSE_BOOT_DEVICE_SELECT_WIDTH			3

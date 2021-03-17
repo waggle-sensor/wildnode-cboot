@@ -16,8 +16,8 @@ Before you can compile on the host, the following requirements must be met:
   you explicitly set it in your CROSS_COMPILE environment variable, as follows.
 
 - The CBoot makefile uses the toolchain set in the CROSS_COMPILE environment
-  variable. The variable must be set to point to your chosen ARM 64-bit
-  toolchain in your path.
+  variable. The variable must be set to point to the ARM 64-bit toolchain
+  used by L4T, and must be in your path.
 
   For example:
 
@@ -26,6 +26,8 @@ Before you can compile on the host, the following requirements must be met:
   Consult the Linux for Tegra Development Guide for detailed toolchain information.
 
 - A GNU Make tool must be available.
+
+- Python2 must be available.
 
 - Create a directory for the CBoot source to extract and build the source.
   In subsequent procedures, the source subdirectory is called "cboot".
@@ -45,8 +47,9 @@ To build the CBoot binary:
 
    Where: <your_64-bit_ARM_toolchain_triple> can be: 'aarch64-linux-gnu-'
 
-3. Set the TEGRA_TOP environment variable:
+3. Set the TEGRA_TOP and TOP environment variables:
    export TEGRA_TOP=$PWD
+   export TOP=$PWD
 
 4. Build the T194 CBoot binary, lk.bin, with the command:
    make -C ./bootloader/partner/t18x/cboot PROJECT=t194 TOOLCHAIN_PREFIX="${CROSS_COMPILE}" DEBUG=2 BUILDROOT="${PWD}"/out NV_TARGET_BOARD=t194ref NV_BUILD_SYSTEM_TYPE=l4t NOECHO=@

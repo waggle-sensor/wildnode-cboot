@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2018-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -92,7 +92,7 @@ void clear_var(const char *var)
 void print_boot_cfg_var(const char *var)
 {
 	if (!strcmp(var, "boot-order")) {
-		tegrabl_print_boot_order();
+		tegrabl_print_boot_dev_order();
 	} else if (!strcmp(var, "boot_pt_guid")) {
 		tegrabl_print_boot_pt_guid();
 	} else {

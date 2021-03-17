@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2018-2019, NVIDIA Corporation.  All rights reserved.
+ * Copyright (c) 2018-2020, NVIDIA Corporation.  All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -60,6 +60,56 @@
 #define AUTHENTICATION_SCHEME_ED25519 0x83U
 #define ECC_SCHEME_P256 0U
 #define ECC_SCHEME_ED25519 1U
+#define SE_AES_BLOCK_LENGTH 16U
+
+static bool check_if_keyslot_is_zero(uint8_t keyslot)
+{
+	static uint8_t sample_text[SE_AES_BLOCK_LENGTH] = {
+		0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+		0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f
+	};
+	static uint8_t cipher_test[SE_AES_BLOCK_LENGTH] = {
+		0x7A, 0xCA, 0x0F, 0xD9, 0xBC, 0xD6, 0xEC, 0x7C,
+		0x9F, 0x97, 0x46, 0x66, 0x16, 0xE6, 0xA2, 0x82
+	};
+	bool iszero = false;
+	tegrabl_error_t error = TEGRABL_NO_ERROR;
+	uint8_t input_data[SE_AES_BLOCK_LENGTH];
+	uint8_t input_iv[SE_AES_BLOCK_LENGTH];
+	uint32_t i;
+
+	if (keyslot > 15U) {
+		pr_error("Invalid Key slot\n");
+		error = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0U);
+		goto fail;
+	}
+
+	memcpy(input_data , cipher_test, SE_AES_BLOCK_LENGTH);
+	memset(input_iv , 0, SE_AES_BLOCK_LENGTH);
+	error = tegrabl_crypto_decrypt_buffer(input_data, SE_AES_BLOCK_LENGTH,
+						input_data, keyslot, SE_AES_BLOCK_LENGTH, input_iv);
+	if (error != TEGRABL_NO_ERROR) {
+		pr_error("Failed to decrypt input data\n");
+		TEGRABL_SET_HIGHEST_MODULE(error);
+		goto fail;
+	}
+
+	pr_trace("decrypted data is \n");
+	for (i = 0; i <  SE_AES_BLOCK_LENGTH; i++) {
+		pr_trace("%0x ", input_data[i]);
+	}
+	pr_trace("\n");
+
+	/* compare if the decrypted data is same as that of sample text;
+	 * if they are the same, keyslot is zero.
+	 */
+	if (!memcmp(input_data, sample_text, SE_AES_BLOCK_LENGTH)) {
+		iszero = true;
+	}
+
+fail:
+	return iszero;
+}
 
 static tegrabl_error_t authenticate_oem_header(void *payload)
 {
@@ -170,6 +220,11 @@ static tegrabl_error_t authenticate_oem_payload(void *payload)
 {
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	uint8_t *hash = NULL;
+	uint32_t val;
+	uint32_t encryption_scheme;
+	uint8_t *src;
+	uint32_t total_len, len;
+	uint32_t chunk = 0x800000;
 
 	NvBootComponentHeader *header = (NvBootComponentHeader *)payload;
 
@@ -196,29 +251,38 @@ static tegrabl_error_t authenticate_oem_payload(void *payload)
 		goto fail;
 	}
 
-#if defined(CONFIG_ENABLE_ENCRYPTION)
-	uint32_t val;
-	uint32_t encryption_scheme;
-
-	/* Decrypt the binary using SBK key if encryption is enabled in
-	 * BOOT_SECURITY_INFO fuse
+	/*
+	 * Decrypt the binary if encryption is enabled in BOOT_SECURITY_INFO fuse, and
+	 * keyslot SBK is not zero.
 	 */
 	val = REG_READ(FUSE, FUSE_BOOT_SECURITY_INFO);
 	encryption_scheme = val & FUSE_ENCRYPTION_SCHEME_MASK;
+	if (encryption_scheme != FUSE_ENCRYPTION_SCHEME_MASK) {
+		pr_info("Encryption fuse is not ON\n");
+		goto fail;
+	}
 
-	if (encryption_scheme == FUSE_ENCRYPTION_SCHEME_MASK) {
-		/* Decrypt the binary */
-		err = tegrabl_crypto_decrypt_buffer((uint8_t *)header + sizeof(*header),
-				header->Stage2Components[0].BinaryLen,
-				(uint8_t *)header + sizeof(*header),
-				AES_KEYSLOT_SBK, SBK_KEY_SIZE_BYTES,
-				header->Salt2);
+	if (check_if_keyslot_is_zero(AES_KEYSLOT_SBK)) {
+		pr_warn("keyslot %d is zero\n", AES_KEYSLOT_SBK);
+		goto fail;
+	}
+
+	/* Decrypt the binary */
+	pr_info("%s: Decrypt the binary\n", __func__);
+	src = (uint8_t *)header + sizeof(*header);
+	total_len = header->Stage2Components[0].BinaryLen;
+	while (total_len) {
+		len = (total_len > chunk) ? chunk : total_len;
+		err = tegrabl_crypto_decrypt_buffer(src, len, src,
+							AES_KEYSLOT_SBK, SBK_KEY_SIZE_BYTES,
+							header->Salt2);
 		if (err != TEGRABL_NO_ERROR) {
 			pr_error("Binary decryption failed\n");
 			goto fail;
 		}
+		src += len;
+		total_len -= len;
 	}
-#endif /* defined(CONFIG_ENABLE_ENCRYPTION) */
 
 fail:
 	if (hash != NULL) {
@@ -270,4 +334,38 @@ uint32_t tegrabl_sigheader_size(void)
 {
 	return CRYPTO_HEADER_SIZE;
 }
+
+uint32_t tegrabl_auth_get_binary_len(void *bin_load_addr)
+{
+	uint32_t bin_len;
+	NvBootComponentHeader *header = (NvBootComponentHeader *)bin_load_addr;
+
+	if (strncmp(bin_load_addr, "NVDA", 4) == 0) {
+		bin_len = header->Stage2Components[0].BinaryLen;
+		pr_trace("Binary len: %u (0x%08x)\n", bin_len, bin_len);
+	} else {
+		pr_trace("Header magic mismatch (0x%02x 0x%02x 0x%02x 0x%02x) or header not present\n",
+				 header->HeaderMagic[0],
+				 header->HeaderMagic[1],
+				 header->HeaderMagic[2],
+				 header->HeaderMagic[3]);
+		bin_len = 0;
+	}
+
+	return bin_len;
+}
+
+/* Last step: clear the keyslot */
+tegrabl_error_t tegrabl_auth_complete(void)
+{
+	tegrabl_error_t err;
+
+	err = tegrabl_se_clear_device_aes_keyslot(AES_KEYSLOT_SBK);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_error("clear keyslot %d returns error=0x%x\n", AES_KEYSLOT_SBK, err);
+	}
+
+	return err;
+}
+
 #endif /* defined(CONFIG_ENABLE_SECURE_BOOT) */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2018, NVIDIA CORPORATION. All rights reserved.
+ * Copyright (c) 2015-2020, NVIDIA CORPORATION. All rights reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -265,26 +265,6 @@ bool fuse_is_nv_production_mode(void)
 	} else {
 		return false;
 	}
-}
-
-static uint32_t fuse_get_boot_security_info(void)
-{
-	uint32_t val;
-	static uint32_t secure_mode[FUSE_BOOT_SECURITY_INFO_SECURE_MASK + 1] = {
-		FUSE_BOOT_SECURITY_AESCMAC,
-		FUSE_BOOT_SECURITY_AESCMAC,
-		FUSE_BOOT_SECURITY_RSA,
-		FUSE_BOOT_SECURITY_ECC,
-		FUSE_BOOT_SECURITY_AESCMAC_ENCRYPTION,
-		FUSE_BOOT_SECURITY_AESCMAC_ENCRYPTION,
-		FUSE_BOOT_SECURITY_RSA_ENCRYPTION,
-		FUSE_BOOT_SECURITY_ECC_ENCRYPTION
-	};
-
-	val = tegrabl_fuse_get_security_info();
-	val &= FUSE_BOOT_SECURITY_INFO_SECURE_MASK;
-
-	return secure_mode[val];
 }
 
 /**
@@ -640,7 +620,7 @@ tegrabl_error_t tegrabl_fuse_read(
 		*buffer = fuse_get_secondary_boot_device();
 		break;
 	case FUSE_TYPE_BOOT_SECURITY_INFO:
-		*buffer = fuse_get_boot_security_info();
+		*buffer = tegrabl_fuse_get_security_info();
 		break;
 	case FUSE_UID:
 		fuse_query_uid(buffer);

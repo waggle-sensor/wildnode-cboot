@@ -81,8 +81,14 @@ struct tegrabl_mb2_bct {
 	/* SPE's UART instance */
 	uint32_t spe_uart_instance;
 
+	/* Enable encryption of OS managed memory */
+	uint32_t enable_os_mem_encryption;
+
+	/* Bit-vector representing which of the GSCs get used for encrypting OS managed memory */
+	uint32_t os_mem_encryption_gsc_list;
+
 	/* Ensure that the total size of structure is 1024 bytes */
-	uint8_t reserved[MB2_BCT_SIZE - 112];
+	uint8_t reserved[MB2_BCT_SIZE - 120];
 }
 );
 

@@ -32,6 +32,7 @@
 #include <lib/console.h>
 #include <tegrabl_debug.h>
 #include <var_cmd.h>
+#include <tegrabl_spi_test.h>
 
 #ifndef CONSOLE_ENABLE_HISTORY
 #define CONSOLE_ENABLE_HISTORY 1
@@ -98,12 +99,14 @@ static int cmd_history(int argc, const cmd_args *argv);
 static int cmd_setvar(int argc, const cmd_args *argv);
 static int cmd_printvar(int argc, const cmd_args *argv);
 static int cmd_savevar(int argc, const cmd_args *argv);
+static int cmd_spitest(int argc, const cmd_args *argv);
 
 STATIC_COMMAND_START
 STATIC_COMMAND("help", "print command description/usage", &cmd_help)
 STATIC_COMMAND("?", "alias for \'help\'", &cmd_help)
 STATIC_COMMAND("echo", "echo args to console", &cmd_echo)
 STATIC_COMMAND("exit", "exit shell", &cmd_exit)
+STATIC_COMMAND("sf", "spi flash test", &cmd_spitest)
 #if CONSOLE_ENABLE_HISTORY
 STATIC_COMMAND("history", "command history", &cmd_history)
 STATIC_COMMAND("setvar", "set a variable with user specified value", &cmd_setvar)
@@ -775,3 +778,25 @@ static int cmd_savevar(int argc, const cmd_args *argv)
 	return NO_ERROR;
 }
 
+static int
+cmd_spitest(int argc, const cmd_args *argv)
+{
+	const char *cmd;
+	int ret;
+
+	ret = NO_ERROR;
+	/* need at least two arguments */
+	if (argc < 2) {
+		dprintf("Using : For example 'sf probe'\n");
+		return 1;
+	}
+	cmd = argv[1].str;
+	--argc;
+	++argv;
+
+	if (strcmp(cmd, "probe") == 0) {
+		ret = do_spi_flash_probe();
+	}
+
+	return ret;
+}

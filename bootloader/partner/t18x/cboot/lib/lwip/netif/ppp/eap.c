@@ -291,7 +291,7 @@ static void eap_send_success(ppp_pcb *pcb) {
 	}
 
 	outp = (u_char*)p->payload;
-    
+
 	MAKEHEADER(outp, PPP_EAP);
 
 	PUTCHAR(EAP_SUCCESS, outp);
@@ -692,7 +692,7 @@ static void eap_send_request(ppp_pcb *pcb) {
 	}
 
 	outp = (u_char*)p->payload;
-    
+
 	MAKEHEADER(outp, PPP_EAP);
 
 	PUTCHAR(EAP_REQUEST, outp);
@@ -1061,7 +1061,7 @@ static void eap_chap_response(ppp_pcb *pcb, u_char id, u_char *hash, const char 
 	}
 
 	outp = (u_char*)p->payload;
-    
+
 	MAKEHEADER(outp, PPP_EAP);
 
 	PUTCHAR(EAP_RESPONSE, outp);
@@ -1417,7 +1417,7 @@ static void eap_request(ppp_pcb *pcb, u_char *inp, int id, int len) {
 		}
 
 		/* Not so likely to happen. */
-		if (vallen >= len + sizeof (rhostname)) {
+		if (len - vallen >= sizeof (rhostname)) {
 			ppp_dbglog("EAP: trimming really long peer name down");
 			MEMCPY(rhostname, inp + vallen, sizeof (rhostname) - 1);
 			rhostname[sizeof (rhostname) - 1] = '\0';
@@ -1845,7 +1845,7 @@ static void eap_response(ppp_pcb *pcb, u_char *inp, int id, int len) {
 		}
 
 		/* Not so likely to happen. */
-		if (vallen >= len + sizeof (rhostname)) {
+		if (len - vallen >= sizeof (rhostname)) {
 			ppp_dbglog("EAP: trimming really long peer name down");
 			MEMCPY(rhostname, inp + vallen, sizeof (rhostname) - 1);
 			rhostname[sizeof (rhostname) - 1] = '\0';

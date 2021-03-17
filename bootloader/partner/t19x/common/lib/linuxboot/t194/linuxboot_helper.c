@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015-2019, NVIDIA Corporation.  All Rights Reserved.
+ * Copyright (c) 2015-2020, NVIDIA Corporation.  All Rights Reserved.
  *
  * NVIDIA Corporation and its licensors retain all intellectual property and
  * proprietary rights in and to this software and related documentation.  Any
@@ -65,6 +65,11 @@
 
 #define SCRATCH_READ(reg)			\
 		NV_READ32(NV_ADDRESS_MAP_SCRATCH_BASE + SCRATCH_##reg)
+
+#define MC_WCAM_ENCR_KEY_STATUS_0	0xe64
+#define GSC_ENCR_KEY_INIT_DONE		0x80000000
+#define GSC_ENCR_KEY_EN 		0x000f0000
+#define GSC_ENCR_KEY_DISTRIB_ERR	0x00000f00
 
 extern struct tboot_cpubl_params *boot_params;
 static uint64_t os_carveout_next_free_addr;
@@ -174,7 +179,6 @@ static int add_presilicon(char *cmdline, int len, char *param, void *priv)
 static int add_secure_state(char *, int, char *, void *) __attribute__ ((unused));
 static int add_secure_state(char *cmdline, int len, char *param, void *priv)
 {
-	tegrabl_error_t err = TEGRABL_NO_ERROR;
 	uint32_t secure_info;
 	bool is_nv_production_mode = false;
 	char *secure_state = NULL;
@@ -185,12 +189,7 @@ static int add_secure_state(char *cmdline, int len, char *param, void *priv)
 		return TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
 	}
 
-	err = tegrabl_fuse_read(FUSE_TYPE_BOOT_SECURITY_INFO, &secure_info,
-							sizeof(uint32_t));
-	if (err != TEGRABL_NO_ERROR) {
-		pr_error("Failed to read security info from fuse\n");
-		return err;
-	}
+	secure_info = tegrabl_fuse_get_security_info();
 
 	is_nv_production_mode = fuse_is_nv_production_mode();
 
@@ -206,7 +205,7 @@ static int add_secure_state(char *cmdline, int len, char *param, void *priv)
 	 *  FUSE_BOOT_SECURITY_ECC_ENCRYPTION
 	 *  it means device is in secure mode.
 	 */
-	if (is_nv_production_mode && secure_info > FUSE_BOOT_SECURITY_AESCMAC) {
+	if (is_nv_production_mode && ((secure_info & 0x7) > FUSE_BOOT_SECURITY_AESCMAC)) {
 		/* true secure mode */
 		secure_state = "enabled";
 	} else if (!is_nv_production_mode &&
@@ -893,6 +892,11 @@ static tegrabl_error_t update_cv_gos_info(void *fdt, int nodeoffset)
 	uint64_t base;
 	uint64_t buf[2];
 
+	if (boot_params->enable_os_mem_encryption == 1) {
+		pr_info("OS memory encryption is enabled, skipping GOS carveout info update in DT\n");
+		return TEGRABL_NO_ERROR;
+	}
+
 	size = boot_params->carveout_info[CARVEOUT_CV].size;
 	if (size == 0LLU) {
 		pr_info("warning: CV carveout not allocated\n");
@@ -1010,8 +1014,36 @@ storage:
 	return status;
 }
 
+#define ECID_STR_SIZE 64
+static tegrabl_error_t add_ecid_info(void *fdt, int nodeoffset)
+{
+	tegrabl_error_t err = TEGRABL_NO_ERROR;
+	char ecid_str[ECID_STR_SIZE] = {'\0'};
+	int32_t fdt_err;
+
+	err = tegrabl_get_ecid_str(ecid_str, ECID_STR_SIZE);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_warn("Failed to read ecid (err = %x), skip adding to DT ...\n", err);
+		err = TEGRABL_NO_ERROR;
+		goto fail;
+	}
+
+	fdt_err = fdt_setprop_string(fdt, nodeoffset, "ecid", ecid_str);
+	if (fdt_err < 0) {
+		pr_error("Failed to add ecid in DT\n");
+		err = TEGRABL_ERROR(TEGRABL_ERR_ADD_FAILED, 0);
+		goto fail;
+	}
+
+	pr_info("Adding ecid(%s) to DT\n", ecid_str);
+
+fail:
+	return err;
+}
+
 static struct tegrabl_linuxboot_dtnode_info extra_nodes[] = {
 	{ "chosen", add_reset_info},
+	{ "chosen", add_ecid_info},
 	{ "cpus" , update_cpu_floorsweeping_config },
 	{ "arm-pmu", update_armpmu_floorsweeping_config },
 	{ "reserved-memory", update_vpr_info },
@@ -1149,6 +1181,14 @@ static void calculate_free_dram_regions(void)
 	free_dram_block_count = rgn;
 }
 
+static bool is_gsc_encryption_enabled(void)
+{
+	uint32_t key_status = mc_read32(MC_WCAM_ENCR_KEY_STATUS_0);
+	return (((key_status & GSC_ENCR_KEY_INIT_DONE) != 0) &&
+		((key_status & GSC_ENCR_KEY_EN) != 0) &&
+		((key_status & GSC_ENCR_KEY_DISTRIB_ERR) == 0));
+}
+
 tegrabl_error_t tegrabl_linuxboot_helper_get_info(tegrabl_linux_boot_info_t info,
 												  const void *in_data,
 												  void *out_data)
@@ -1157,6 +1197,9 @@ tegrabl_error_t tegrabl_linuxboot_helper_get_info(tegrabl_linux_boot_info_t info
 	uint32_t temp32;
 	uint64_t addr;
 	uint32_t mailbox_addr;
+	uint32_t *os_mem_encryption_gsc_list;
+	uint32_t encryption_gsc_count = 0;
+	uint32_t i;
 	tegrabl_error_t err = TEGRABL_NO_ERROR;
 
 	TEGRABL_UNUSED(mailbox_addr);
@@ -1251,6 +1294,62 @@ tegrabl_error_t tegrabl_linuxboot_helper_get_info(tegrabl_linux_boot_info_t info
 		default:
 			memblock->base = 0x0;
 			memblock->size = 0x0;
+		}
+		break;
+
+	case TEGRABL_LINUXBOOT_INFO_MEMENCR_ADDR:
+		if (in_data == NULL) {
+			err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
+			goto fail;
+		}
+
+		temp32 = *((uint32_t *)in_data);
+		/* Sanity check for valid encryption GSC id */
+		if (!((boot_params->os_mem_encryption_gsc_list >> temp32) & 0x1)) {
+			goto fail;
+		}
+
+		memblock = (struct tegrabl_linuxboot_memblock *)out_data;
+		memblock->base = boot_params->carveout_info[temp32].base;
+		memblock->size = boot_params->carveout_info[temp32].size;
+
+		/* Make sure the encryption memory inside the DRAM region */
+		if (memblock->base == 0 || memblock->size == 0) {
+			pr_error("Encryption GSC base/size invalid\n");
+			err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
+			goto fail;
+		}
+		else if (memblock->base < SDRAM_START_ADDRESS ||
+			(memblock->base + memblock->size) > (SDRAM_START_ADDRESS + boot_params->sdram_size)) {
+			pr_error("Encryption GSC region invalid\n");
+			err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
+			goto fail;
+		}
+		break;
+
+	case TEGRABL_LINUXBOOT_INFO_ENABLE_OS_MEM_ENCR:
+		/* Make sure GSC encryption is enabled and status is correct */
+		if (boot_params->enable_os_mem_encryption == 1) {
+			if (is_gsc_encryption_enabled() == false) {
+				pr_error("GSC encryption is disabled\n");
+				err = TEGRABL_ERROR(TEGRABL_ERR_INVALID, 0);
+				goto fail;
+			}
+		}
+		*(uint32_t *)out_data = boot_params->enable_os_mem_encryption;
+		break;
+
+	case TEGRABL_LINUXBOOT_INFO_MEMENCR_GSC_LIST:
+		os_mem_encryption_gsc_list =  (uint32_t *)out_data;
+		for (i = CARVEOUT_GSC31; i > CARVEOUT_GSC5; i--) {
+			if ((boot_params->os_mem_encryption_gsc_list >> i) & 0x1) {
+				*os_mem_encryption_gsc_list++ = i;
+				encryption_gsc_count++;
+			}
+		}
+		if (encryption_gsc_count > MAX_ENCR_CARVEOUT) {
+			pr_error("Encryption GSC count exceed the maximum size(16)\n");
+			goto fail;
 		}
 		break;
 
@@ -1494,8 +1593,7 @@ uint64_t tegrabl_get_kernel_load_addr(void)
 		os_carveout_next_free_addr = kernel_load_addr + MAX_KERNEL_IMAGE_SIZE;
 	}
 
-	/* Load kernel at text offset */
-	return kernel_load_addr + 0x80000ULL;
+	return kernel_load_addr;
 }
 
 uint64_t tegrabl_get_dtb_load_addr(void)
@@ -1536,6 +1634,11 @@ uint64_t tegrabl_get_ramdisk_load_addr(void)
 	os_carveout_next_free_addr = ramdisk_load_addr + RAMDISK_MAX_SIZE;
 
 	return ramdisk_load_addr;
+}
+
+uint64_t tegrabl_get_kernel_text_offset(void)
+{
+	return 0x80000;
 }
 
 #if defined(CONFIG_ENABLE_L4T_RECOVERY)

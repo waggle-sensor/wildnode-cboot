@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2019, NVIDIA CORPORATION.  All rights reserved.
+ * Copyright (c) 2017-2020, NVIDIA CORPORATION.  All rights reserved.
  *
  * NVIDIA CORPORATION and its licensors retain all intellectual property
  * and proprietary rights in and to this software, related documentation
@@ -169,6 +169,7 @@ struct mmio_mapping_info mmio_mappings[] = {
 	{ NV_ADDRESS_MAP_SE2_BASE, NV_ADDRESS_MAP_SE2_SIZE },
 	{ NV_ADDRESS_MAP_SE3_BASE, NV_ADDRESS_MAP_SE3_SIZE },
 	{ NV_ADDRESS_MAP_SE4_BASE, NV_ADDRESS_MAP_SE4_SIZE },
+	{ NV_ADDRESS_MAP_SPI1_BASE, NV_ADDRESS_MAP_SPI1_SIZE },
 	{ NV_ADDRESS_MAP_QSPI0_BASE, NV_ADDRESS_MAP_QSPI0_SIZE },
 	{ NV_ADDRESS_MAP_QSPI1_BASE, NV_ADDRESS_MAP_QSPI1_SIZE },
 	{ NV_ADDRESS_MAP_SOR_BASE, NV_ADDRESS_MAP_SOR_SIZE },
@@ -194,6 +195,10 @@ struct mmio_mapping_info mmio_mappings[] = {
 	{ NV_ADDRESS_MAP_PWM8_BASE, NV_ADDRESS_MAP_PWM8_SIZE },
 	{ NV_ADDRESS_MAP_MSS_QUAL_BASE, NV_ADDRESS_MAP_MSS_QUAL_SIZE },
 	{ NV_ADDRESS_MAP_MCB_BASE, NV_ADDRESS_MAP_MCB_SIZE },
+	{ NV_ADDRESS_MAP_PCIE_C1_CTL_BASE, NV_ADDRESS_MAP_PCIE_C1_CTL_SIZE * 6 },
+	{ NV_ADDRESS_MAP_PCIE_C1_32BIT_RP_BASE, NV_ADDRESS_MAP_PCIE_C1_32BIT_SIZE * 6},
+	{ NV_ADDRESS_MAP_PIPE2UPHY_BASE, NV_ADDRESS_MAP_PIPE2UPHY_SIZE },
+	{ NV_ADDRESS_MAP_PADCTL_A20_BASE, NV_ADDRESS_MAP_PADCTL_A20_SIZE },
 };
 
 static inline void platform_init_boot_param(void)
@@ -381,6 +386,7 @@ void platform_init_mmu_mappings(void)
 {
 	uint32_t idx;
 	uintptr_t addr;
+	uint32_t gsc_idx;
 
 	for (idx = 0; idx < ARRAY_SIZE(mmio_mappings); idx++) {
 		arm64_mmu_map(mmio_mappings[idx].addr, mmio_mappings[idx].addr,
@@ -418,6 +424,18 @@ void platform_init_mmu_mappings(void)
 			(1024 * 1024),
 			MMU_FLAG_CACHED | MMU_FLAG_READWRITE | MMU_FLAG_EXECUTE_NOT);
 
+	if (boot_params->enable_os_mem_encryption == 1) {
+		/* Change the OS carveout to the 1st encryption carveout if full DRAM encryption
+		 * is enabled
+		 */
+		for (gsc_idx = CARVEOUT_GSC31; gsc_idx > CARVEOUT_GSC5; gsc_idx--) {
+			if (((boot_params->os_mem_encryption_gsc_list >> gsc_idx) & 0x1) != 0 ) {
+				break;
+			}
+		}
+		boot_params->carveout_info[CARVEOUT_OS].base = boot_params->carveout_info[gsc_idx].base;
+		boot_params->carveout_info[CARVEOUT_OS].size = boot_params->carveout_info[gsc_idx].size;
+	}
 	arm64_mmu_map((uintptr_t)boot_params->carveout_info[CARVEOUT_OS].base,
 				  (uintptr_t)boot_params->carveout_info[CARVEOUT_OS].base,
 				  boot_params->carveout_info[CARVEOUT_OS].size,
@@ -536,6 +554,7 @@ void platform_init(void)
 	void *bl_dtb = NULL;
 #endif
 	bool is_cbo_read = true;
+	bool hang_up = false;
 
 #if defined(CONFIG_ENABLE_STAGED_SCRUBBING)
 	/* Staged scrubbing */
@@ -619,6 +638,7 @@ void platform_init(void)
 	err = config_storage(dev_param, boot_params->storage_devices);
 	if (err != TEGRABL_NO_ERROR) {
 		pr_error("Error config_storage\n");
+		hang_up = true;
 		goto fail;
 	}
 
@@ -663,6 +683,9 @@ void platform_init(void)
 #endif
 
 fail:
+	if (hang_up) {
+		halt();
+	}
 	return;
 }
 
