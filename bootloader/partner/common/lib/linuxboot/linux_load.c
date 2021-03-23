@@ -44,6 +44,9 @@
 #if defined(CONFIG_ENABLE_EXTLINUX_BOOT)
 #include <extlinux_boot.h>
 #endif
+#ifdef CONFIG_ENABLE_A_B_SLOT
+#include <tegrabl_a_b_boot_control.h>
+#endif
 
 #define FDT_SIZE_BL_DT_NODES	(4048 + 4048)
 
@@ -245,10 +248,14 @@ tegrabl_error_t tegrabl_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel,
 	void *kernel_dtbo = NULL;
 	bool is_load_done = false;
 	uint32_t i = 0;
+	uint32_t bootorder_start = 0;
 	uint8_t *boot_order;
 	void *boot_img_load_addr = NULL;
 	void *ramdisk_load_addr = NULL;
 	uint32_t kernel_size = 0;
+#if defined(CONFIG_ENABLE_A_B_SLOT)
+	uint32_t bootslot;
+#endif
 
 	pr_trace("%s(): %u\n", __func__, __LINE__);
 
@@ -260,8 +267,29 @@ tegrabl_error_t tegrabl_load_kernel_and_dtb(struct tegrabl_kernel_bin *kernel,
 	/* Get boot order from cbo.dtb */
 	boot_order = tegrabl_get_boot_order();
 
+#if defined(CONFIG_ENABLE_A_B_SLOT)
+	/* WAGGLE specific: SAGE-746
+	 *  Read the active boot slot. If not 0, then skip first boot option.
+	 */
+	err = tegrabl_a_b_get_active_slot(NULL, &bootslot);
+	if (err != TEGRABL_NO_ERROR) {
+		pr_warn("Media select: Unable to read active boot slot, assume slot A.\n");
+		bootslot = BOOT_SLOT_A;
+	}
+	if (bootslot != BOOT_SLOT_A) {
+		pr_info("Media select: Boot slot [%u] is NOT 'A' (primary)\n", bootslot);
+		/* We know that BOOT_DEFAULT is the last item in the array */
+		if (boot_order[bootorder_start] != BOOT_DEFAULT) {
+			bootorder_start = bootorder_start + 1;
+			pr_info("Media select: skipping first boot media, selecting [%u]\n", bootorder_start + 1);
+		} else {
+			pr_warn("Media select: un-able to skip first boot media, already at last boot option.\n");
+		}
+	}
+#endif
+
 	/* Try loading boot image and dtb from devices as per boot order */
-	for (i = 0; (boot_order[i] != BOOT_DEFAULT) && (!is_load_done); i++) {
+	for (i = bootorder_start; (boot_order[i] != BOOT_DEFAULT) && (!is_load_done); i++) {
 
 		switch (boot_order[i]) {
 
