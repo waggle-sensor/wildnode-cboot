@@ -13,27 +13,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-        with:
-          path: cboot
-      - name: Prep Build Environment
-        uses: actions/checkout@v2
-        with:
-          repository: waggle-sensor/nvidia_toolchain
-          ref: refs/heads/master
-          path: toolchain
-          lfs: true
       - name: Build project
         id: build_project
         run: |
-          pushd ${{ github.workspace }}/toolchain
-          tar xf $(ls *.xz)
-          popd
-          pushd ${{ github.workspace }}/cboot
-          ./build.sh -t ${{ github.workspace }}/toolchain/gcc-linaro-7.3.1-2018.05-x86_64_aarch64-linux-gnu
+          ./build.sh -r
           gzip $(ls *.bin)
-          popd
-          echo "##[set-output name=cboot_gz_path;]$(ls cboot/*.gz)"
-          echo "##[set-output name=cboot_gz_name;]$(basename $(ls cboot/*.gz))"
+          echo "##[set-output name=cboot_gz_path;]$(ls *.gz)"
+          echo "##[set-output name=cboot_gz_name;]$(basename $(ls *.gz))"
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
