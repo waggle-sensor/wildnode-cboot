@@ -1,11 +1,8 @@
-# Nvidia Xavier CBoot Bootloader Build
+# Wild Waggle Node Nvidia Xavier CBoot Bootloader Build
 
-Compile the NVidia Jetson Bootloader (CBoot) from source to replace the
-bootloader provided in the [NVidia L4T BSP](https://developer.nvidia.com/embedded/linux-tegra).
-This allows custom changes to be made to the bootloader specific to the SAGE
-project.
+Compile the [Wild Waggle Node](https://github.com/waggle-sensor/wild-waggle-node) NVidia Jetson Bootloader (CBoot) from source to replace the bootloader provided in the [NVidia L4T BSP](https://developer.nvidia.com/embedded/linux-tegra). This allows custom changes to be made to the bootloader specific to the Wild Waggle node.
 
-This will produce a replacement NVidia bootloader (cboot*.bin) to be used by [nx-image](https://github.com/waggle-sensor/nx-image) to produce the Wild Sage Node NX Build.
+This will produce a replacement NVidia bootloader (cboot*.bin) to be used by [wildnode-image](https://github.com/waggle-sensor/wildnode-image) to produce the Wild Waggle Node NX Build.
 
 ## Usage Instructions
 
