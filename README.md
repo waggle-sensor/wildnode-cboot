@@ -4,6 +4,8 @@ Compile the [Wild Waggle Node](https://github.com/waggle-sensor/wild-waggle-node
 
 This will produce a replacement NVidia bootloader (cboot*.bin) to be used by [wildnode-image](https://github.com/waggle-sensor/wildnode-image) to produce the Wild Waggle Node NX Build.
 
+> Requires the [nvidia_toolchain](https://github.com/waggle-sensor/nvidia_toolchain) to build.
+
 ## Usage Instructions
 
 Builds are created using the `./build.sh` script. For help execute `./build.sh -?`.
